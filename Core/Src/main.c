@@ -57,14 +57,14 @@
 #define LED7_GPIO_Port GPIOA
 #define LED7_Pin GPIO_PIN_6
 
-#define LED8_GPIO_Port GPIOA
-#define LED8_Pin GPIO_PIN_7
+#define LED8_GPIO_Port GPIOB
+#define LED8_Pin GPIO_PIN_2
 
 #define LED9_GPIO_Port GPIOB
-#define LED9_Pin GPIO_PIN_0
+#define LED9_Pin GPIO_PIN_10
 
 #define LED10_GPIO_Port GPIOB
-#define LED10_Pin GPIO_PIN_1	//LED initialization
+#define LED10_Pin GPIO_PIN_11	//LED initialization
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -364,7 +364,9 @@ int main(void)
 		HAL_Delay(125);
     while(TIM_FLAG_CC1==0&&i<=100)
 		{
+			HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 			i++;
+			HAL_Delay(1);
 		}
 		float dst=velocity*timeInterval/2000;
 		OLED_ShowNum(1,5,dst,4);
