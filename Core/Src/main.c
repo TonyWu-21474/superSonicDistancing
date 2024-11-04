@@ -86,6 +86,7 @@ volatile uint32_t elapsed_time = 0; // 用于存储经过的时间
 uint32_t timeInterval = 0;
 const uint16_t velocity = 340;
 uint8_t i = 0;
+static float dst = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -358,18 +359,25 @@ int main(void)
 	
  while (1)
   {
+		i=0;
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 		Buzzer_Beep(1);//1毫秒40个波形
 		Start_Timer_Measurement();
 		HAL_Delay(125);
-    while(TIM_FLAG_CC1==0&&i<=100)
+		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_SET);
+    //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
+		//下一步向老师询问为什么出现这样的问题
+		while(HAL_TIM_Base_GetState(&htim3)==HAL_OK&&__HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
 		{
 			HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 			i++;
+			OLED_ShowNum(4,1,i,1);
 			HAL_Delay(1);
 		}
-		float dst=velocity*timeInterval/2000;
-		OLED_ShowNum(1,5,dst,4);
+		HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
+		dst=velocity*timeInterval/2000;
+		OLED_ShowNum(1,5,timeInterval,4);
 		/*if(dst<=40){n=10;}
 		else if(40<dst&&dst<=45){n=9;}
 		else if(45<dst&&dst<=50){n=8;}
