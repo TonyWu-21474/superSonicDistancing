@@ -350,7 +350,13 @@ int main(void)
 	low_time_ms=1;//我也不知道为什么，但是这么写就行。这里的1=7.2ms
 	CalculateCounts();
 	HAL_TIM_Base_Start_IT(&htim2);
-	
+	//检查是否正确启动计时定时器
+	if(HAL_TIM_Base_GetState(&htim3)!= HAL_OK)
+	{
+		OLED_Clear();
+		OLED_ShowString(1,1,"ERROR!");
+		Error_Handler();
+	}
 	
   /* USER CODE END 2 */
 
