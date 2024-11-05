@@ -243,6 +243,7 @@ void Start_Timer_Measurement(void)
   __HAL_TIM_CLEAR_FLAG(&htim3, TIM_FLAG_CC1);
 
   // 启动定时器计数和输入捕获中断
+	HAL_TIM_IC_Start_IT(&htim3,TIM_CHANNEL_1);
   if (HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
@@ -351,7 +352,7 @@ int main(void)
 	CalculateCounts();
 	HAL_TIM_Base_Start_IT(&htim2);
 	//检查是否正确启动计时定时器
-	if(HAL_TIM_Base_GetState(&htim3)!= HAL_OK)
+	if(HAL_TIM_Base_GetState(&htim3)!= HAL_TIM_STATE_READY)
 	{
 		OLED_Clear();
 		OLED_ShowString(1,1,"ERROR!");
@@ -373,7 +374,9 @@ int main(void)
 		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_SET);
     //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
 		//下一步向老师询问为什么出现这样的问题
-		while(HAL_TIM_Base_GetState(&htim3)==HAL_OK&&__HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
+		//11.5更新：放弃使用输入捕获功能，使用外部中断
+		//出现新问题：PWM输出错误
+		while(HAL_TIM_Base_GetState(&htim3) == HAL_TIM_STATE_READY && __HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
 		{
 			HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 			i++;
