@@ -233,6 +233,7 @@ void CalculateCounts(void)
 // 开始计时函数
 void Start_Timer_Measurement(void)
 {
+
   // 停止定时器以确保计数器正确重置
   HAL_TIM_IC_Stop_IT(&htim3, TIM_CHANNEL_1);
 
@@ -249,6 +250,13 @@ void Start_Timer_Measurement(void)
   }
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
+{
+	i++;
+	HAL_TIM_Base_Stop(&htim3);
+	timeInterval = __HAL_TIM_GetCounter(&htim3)/1000;
+	timeInterval = timeInterval/1000;
+}
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM2)
@@ -279,7 +287,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+/*void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM3 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
   {
@@ -294,6 +302,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     // 您可以在此处处理 elapsed_time，例如设置标志位或传递给主循环
   }
 }
+*/
 /* USER CODE END 0 */
 
 /**
@@ -350,39 +359,40 @@ int main(void)
 	low_time_ms=1;//我也不知道为什么，但是这么写就行。这里的1=7.2ms
 	CalculateCounts();
 	HAL_TIM_Base_Start_IT(&htim2);
-	//检查是否正确启动计时定时器
-	if(HAL_TIM_Base_GetState(&htim3)!= HAL_OK)
-	{
-		OLED_Clear();
-		OLED_ShowString(1,1,"ERROR!");
-		Error_Handler();
-	}
-	
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	
+	i=0;
  while (1)
   {
-		i=0;
+		
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
-		Buzzer_Beep(1);//1毫秒40个波形
-		Start_Timer_Measurement();
-		HAL_Delay(125);
-		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_SET);
+		Buzzer_Beep(0);//1毫秒40个波形
+		OLED_ShowNum(4,1,i,2);
+		
+		HAL_TIM_Base_Start(&htim3);
+		if(HAL_TIM_Base_GetState(&htim3) != HAL_TIM_STATE_BUSY)
+		{
+			OLED_Clear();
+			OLED_ShowString(1,1,"ERROR!");
+			Error_Handler();
+		}
+		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
+		HAL_Delay(250);
     //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
 		//下一步向老师询问为什么出现这样的问题
-		while(HAL_TIM_Base_GetState(&htim3)==HAL_OK&&__HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
+		/*while(HAL_TIM_Base_GetState(&htim3)==HAL_OK&&__HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
 		{
 			HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 			i++;
 			OLED_ShowNum(4,1,i,1);
 			HAL_Delay(1);
 		}
-		HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
-		dst=velocity*timeInterval/2000;
+		*/
+		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
+		//HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
+		dst=velocity*timeInterval/2;
 		OLED_ShowNum(1,5,timeInterval,4);
 		/*if(dst<=40){n=10;}
 		else if(40<dst&&dst<=45){n=9;}
