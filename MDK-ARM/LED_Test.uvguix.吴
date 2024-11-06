@@ -3606,11 +3606,11 @@
       <ActiveTab>0</ActiveTab>
       <Doc>
         <Name>../Core/Src/main.c</Name>
-        <ColumnNumber>17</ColumnNumber>
-        <TopLine>335</TopLine>
-        <CurrentLine>353</CurrentLine>
+        <ColumnNumber>0</ColumnNumber>
+        <TopLine>164</TopLine>
+        <CurrentLine>382</CurrentLine>
         <Folding>1</Folding>
-        <ContractedFolders></ContractedFolders>
+        <ContractedFolders>101,105,128,142,156,190,205,241,260,267,309</ContractedFolders>
         <PaneID>0</PaneID>
       </Doc>
       <Doc>
@@ -3624,8 +3624,8 @@
       </Doc>
       <Doc>
         <Name>../Core/Src/tim.c</Name>
-        <ColumnNumber>9</ColumnNumber>
-        <TopLine>79</TopLine>
+        <ColumnNumber>11</ColumnNumber>
+        <TopLine>127</TopLine>
         <CurrentLine>80</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
@@ -3678,7 +3678,7 @@
       </Doc>
       <Doc>
         <Name>.\pwm.c</Name>
-        <ColumnNumber>9</ColumnNumber>
+        <ColumnNumber>8</ColumnNumber>
         <TopLine>16</TopLine>
         <CurrentLine>23</CurrentLine>
         <Folding>1</Folding>
