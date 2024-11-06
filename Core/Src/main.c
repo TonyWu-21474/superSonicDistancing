@@ -75,18 +75,25 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+//不敢动但是也没用到
 uint32_t HighCounts = 0;
 uint32_t LowCounts  = 0;
 uint8_t  IsHigh     = 0;//定时器中断标志位
 uint32_t Counter 		= 0;
+//蜂鸣器输出配置
 // 设定高电平和低电平持续时间（单位：毫秒）
 uint32_t high_time_ms = 500; // 高电平持续时间，单位为毫秒
 uint32_t low_time_ms  = 500; // 低电平持续时间，单位为毫秒
+//测距用
 volatile uint32_t elapsed_time = 0; // 用于存储经过的时间
 uint32_t timeInterval = 0;
 const uint16_t velocity = 340;
-uint8_t i = 0;
 static float dst = 0;
+//超时计数器
+uint8_t i = 0;
+/* 脉冲计数变量 */
+volatile uint32_t pulse_count = 0;    // 已经输出的脉冲计数
+volatile uint32_t pulse_target = 0;   // 需要输出的脉冲总数
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -250,14 +257,14 @@ void Start_Timer_Measurement(void)
   }
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)//没写完，IO外部中断用于定时
 {
 	i++;
 	HAL_TIM_Base_Stop(&htim3);
 	timeInterval = __HAL_TIM_GetCounter(&htim3)/1000;
 	timeInterval = timeInterval/1000;
 }
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器2/4溢出中断处理,未测试
 {
     if (htim->Instance == TIM2)
     {
@@ -284,6 +291,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             }
         }
     }
+		if (htim ->Instance == TIM4)
+    {
+        pulse_count++;
+        if (pulse_count >= pulse_target)
+        {
+            /* 达到目标脉冲数，停止PWM输出 */
+            HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+            HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
+            
+            /* 禁用TIM4更新中断 */
+            __HAL_TIM_DISABLE_IT(&htim4, TIM_IT_UPDATE);
+        }
+    }
 }
 
 
@@ -303,6 +323,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 }
 */
+
+
 /* USER CODE END 0 */
 
 /**
@@ -341,14 +363,14 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	OLED_Init();
 	HAL_ADCEx_Calibration_Start(&hadc1);
-	Buzzer_SetFrequency(40000);
+	//Buzzer_SetFrequency(40000);
 	HAL_ADC_Start(&hadc1);
   uint32_t adcValue = HAL_ADC_GetValue(&hadc1);
 	float temperature = ((1.43 - ((float)adcValue * 3.3 / 4096)) / 0.0043) +24-320;
             // 1.43V is the typical voltage at 25°C
             // 0.0043 V/°C is the slope
 	//Buzzer_Beep(150);
-	Buzzer_Off();
+	//Buzzer_Off();
 	OLED_Clear();
   uint8_t n = 0;
 		//control_leds(n);
@@ -356,9 +378,18 @@ int main(void)
 	OLED_ShowString(2,1,"TMP ");
 	OLED_ShowNum(2,5,temperature,3);
 	high_time_ms=1;
-	low_time_ms=1;//我也不知道为什么，但是这么写就行。这里的1=7.2ms
+	low_time_ms=1; //我也不知道为什么，但是这么写就行。这里的1=7.2ms
 	CalculateCounts();
+	pulse_target = 1000;
+  pulse_count = 0;
 	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+	__HAL_TIM_ENABLE_IT(&htim4, TIM_IT_UPDATE);
+	while(1)
+	{
+		//测试用
+	}
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -368,7 +399,7 @@ int main(void)
   {
 		
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
-		Buzzer_Beep(0);//1毫秒40个波形
+		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
 		OLED_ShowNum(4,1,i,2);
 		
 		HAL_TIM_Base_Start(&htim3);
