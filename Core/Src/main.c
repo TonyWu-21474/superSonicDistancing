@@ -258,13 +258,16 @@ void Start_Timer_Measurement(void)
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)//没写完，IO外部中断用于定时
+	//1107更新：可以读取寄存器值，需要进一步修改参数
 {
 	i++;
-	HAL_TIM_Base_Stop(&htim3);
-	timeInterval = __HAL_TIM_GetCounter(&htim3)/1000;
-	timeInterval = timeInterval/1000;
+	//HAL_TIM_Base_Stop(&htim3);
+	timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
+	//timeInterval = timeInterval/1000;
+	OLED_ShowNum(1,5,timeInterval,4);
 }
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器2/4溢出中断处理,未测试
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//定时器2/4溢出中断处理,未测试
+																														//1107测试结果：正常
 {
     if (htim->Instance == TIM2)
     {
@@ -324,7 +327,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//定时器2/4溢出中断处
 }
 */
 
-
+void beep(uint8_t peaks)
+{
+		pulse_target = peaks;
+		pulse_count = 0;
+		HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
+		HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+		__HAL_TIM_ENABLE_IT(&htim4, TIM_IT_UPDATE);
+//		HAL_Delay(1);
+//		HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
+//		HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
+}
 /* USER CODE END 0 */
 
 /**
@@ -378,18 +391,14 @@ int main(void)
 	OLED_ShowString(2,1,"TMP ");
 	OLED_ShowNum(2,5,temperature,3);
 	high_time_ms=1;
-	low_time_ms=1; //我也不知道为什么，但是这么写就行。这里的1=7.2ms
+	low_time_ms=1; //时钟要配置为72MHz
 	CalculateCounts();
-	pulse_target = 1000;
+	pulse_target = 9;
   pulse_count = 0;
 	HAL_TIM_Base_Start_IT(&htim2);
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
-	__HAL_TIM_ENABLE_IT(&htim4, TIM_IT_UPDATE);
-	while(1)
-	{
-		//测试用
-	}
+//	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
+//	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+//	__HAL_TIM_ENABLE_IT(&htim4, TIM_IT_UPDATE);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -400,6 +409,7 @@ int main(void)
 		
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
+		beep(6);//发信号
 		OLED_ShowNum(4,1,i,2);
 		
 		HAL_TIM_Base_Start(&htim3);
@@ -409,10 +419,11 @@ int main(void)
 			OLED_ShowString(1,1,"ERROR!");
 			Error_Handler();
 		}
-		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
 		HAL_Delay(250);
+		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
     //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
 		//下一步向老师询问为什么出现这样的问题
+		//已解决（11/7）
 		/*while(HAL_TIM_Base_GetState(&htim3)==HAL_OK&&__HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
 		{
 			HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
@@ -424,7 +435,7 @@ int main(void)
 		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
 		//HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
 		dst=velocity*timeInterval/2;
-		OLED_ShowNum(1,5,timeInterval,4);
+//		OLED_ShowNum(1,5,timeInterval,4);
 		/*if(dst<=40){n=10;}
 		else if(40<dst&&dst<=45){n=9;}
 		else if(45<dst&&dst<=50){n=8;}
@@ -460,7 +471,11 @@ void SystemClock_Config(void)
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -470,17 +485,17 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV2;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
