@@ -86,11 +86,12 @@ uint32_t high_time_ms = 500; // 高电平持续时间，单位为毫秒
 uint32_t low_time_ms  = 500; // 低电平持续时间，单位为毫秒
 //测距用
 volatile uint32_t elapsed_time = 0; // 用于存储经过的时间
-uint32_t timeInterval = 0;
+float timeInterval = 0;
 const uint16_t velocity = 340;
 static float dst = 0;
 //超时计数器
 uint8_t i = 0;
+uint8_t flag=0;
 /* 脉冲计数变量 */
 volatile uint32_t pulse_count = 0;    // 已经输出的脉冲计数
 volatile uint32_t pulse_target = 0;   // 需要输出的脉冲总数
@@ -260,11 +261,14 @@ void Start_Timer_Measurement(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)//没写完，IO外部中断用于定时
 	//1107更新：可以读取寄存器值，需要进一步修改参数
 {
-	i++;
+	flag=1;
+	EXTI->RTSR;
 	//HAL_TIM_Base_Stop(&htim3);
 	timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
-	//timeInterval = timeInterval/1000;
-	OLED_ShowNum(1,5,timeInterval,4);
+	timeInterval = timeInterval/1000;
+	timeInterval = timeInterval/100;
+	//OLED_ShowNum(1,5,timeInterval,5);
+	HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//定时器2/4溢出中断处理,未测试
 																														//1107测试结果：正常
@@ -409,6 +413,7 @@ int main(void)
 		
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
+		flag = 0;
 		beep(6);//发信号
 		OLED_ShowNum(4,1,i,2);
 		
@@ -419,8 +424,12 @@ int main(void)
 			OLED_ShowString(1,1,"ERROR!");
 			Error_Handler();
 		}
-		HAL_Delay(250);
-		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
+		//HAL_Delay(1);
+		while(flag!=1&&i<100)
+		{
+			i++;
+		}
+		//HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
     //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
 		//下一步向老师询问为什么出现这样的问题
 		//已解决（11/7）
@@ -435,8 +444,8 @@ int main(void)
 		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
 		//HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
 		dst=velocity*timeInterval/2;
-//		OLED_ShowNum(1,5,timeInterval,4);
-		/*if(dst<=40){n=10;}
+		OLED_ShowNum(1,5,dst,4);
+		if(dst<=40){n=10;}
 		else if(40<dst&&dst<=45){n=9;}
 		else if(45<dst&&dst<=50){n=8;}
 		else if(50<dst&&dst<=55){n=7;}
@@ -446,8 +455,10 @@ int main(void)
 		else if(80<dst&&dst<=90){n=3;}
 		else if(90<dst&&dst<=100){n=2;}
 		else{n=1;}
-		*/
-		HAL_Delay(150);
+		high_time_ms=1000/n-10;
+		low_time_ms=10; //时钟要配置为72MHz
+		CalculateCounts();
+		HAL_Delay(350);
 		
     /* USER CODE END WHILE */
 
