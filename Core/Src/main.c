@@ -92,6 +92,8 @@ static float dst = 0;
 //³¬Ê±¼ÆÊýÆ÷
 uint8_t i = 0;
 uint8_t flag=0;
+uint8_t flag_led = 0;
+uint8_t n = 0;
 /* Âö³å¼ÆÊý±äÁ¿ */
 volatile uint32_t pulse_count = 0;    // ÒÑ¾­Êä³öµÄÂö³å¼ÆÊý
 volatile uint32_t pulse_target = 0;   // ÐèÒªÊä³öµÄÂö³å×ÜÊý
@@ -311,6 +313,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//¶¨Ê±Æ÷2/4Òç³öÖÐ¶Ï´
             __HAL_TIM_DISABLE_IT(&htim4, TIM_IT_UPDATE);
         }
     }
+		if (htim->Instance == TIM1) 
+		{
+      if (flag_led == 0 && n == 0)  
+			{
+				light_up_leds(10);
+				flag_led = 1;
+			}
+			else if(flag_led == 1 && n == 0)
+			{
+				turn_off_all_leds();
+				flag_led = 0;
+			}
+    }
 }
 
 
@@ -377,7 +392,9 @@ int main(void)
   MX_TIM2_Init();
   MX_ADC1_Init();
   MX_TIM3_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+	n = 0;
 	OLED_Init();
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	//Buzzer_SetFrequency(40000);
@@ -389,7 +406,7 @@ int main(void)
 	//Buzzer_Beep(150);
 	//Buzzer_Off();
 	OLED_Clear();
-  uint8_t n = 0;
+  //uint8_t n = 0;
 		//control_leds(n);
 	OLED_ShowString(1,1,"DST ");
 	OLED_ShowString(2,1,"TMP ");
