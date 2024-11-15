@@ -87,7 +87,7 @@ uint32_t low_time_ms  = 500; // µÕµÁ∆Ω≥÷–¯ ±º‰£¨µ•ŒªŒ™∫¡√Î
 //≤‚æ‡”√
 volatile uint32_t elapsed_time = 0; // ”√”⁄¥Ê¥¢æ≠π˝µƒ ±º‰
 float timeInterval = 0;
-const uint16_t velocity = 340;
+uint16_t velocity = 340;
 static float dst = 0;
 //≥¨ ±º∆ ˝∆˜
 uint8_t i = 0;
@@ -160,34 +160,15 @@ void turn_off_all_leds(void) {
 void light_up_leds_one_by_one(void) {
     // ¥”◊ÛµΩ”““¿¥Œµ„¡¡LED£¨—”≥Ÿ200ms◊˜Œ™∂ØÃ¨–ßπ˚
     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-
     HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-
     HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-
     HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-
 		HAL_GPIO_WritePin(LED5_GPIO_Port, LED5_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-		
 		HAL_GPIO_WritePin(LED6_GPIO_Port, LED6_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-	
 		HAL_GPIO_WritePin(LED7_GPIO_Port, LED7_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-		
 		HAL_GPIO_WritePin(LED8_GPIO_Port, LED8_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-		
 		HAL_GPIO_WritePin(LED9_GPIO_Port, LED9_Pin, GPIO_PIN_SET);
-    delay_ms(200);
-		
 		HAL_GPIO_WritePin(LED10_GPIO_Port, LED10_Pin, GPIO_PIN_SET);
-    delay_ms(200);
 }
 
 //Blink LEDs
@@ -315,12 +296,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//∂® ±∆˜2/4“Á≥ˆ÷–∂œ¥
     }
 		if (htim->Instance == TIM1) 
 		{
-      if (flag_led == 0 && n == 0)  
+      if (flag_led == 0 && n == 10)  
 			{
 				light_up_leds(10);
 				flag_led = 1;
 			}
-			else if(flag_led == 1 && n == 0)
+			else if(flag_led == 1 && n == 10)
 			{
 				turn_off_all_leds();
 				flag_led = 0;
@@ -410,7 +391,9 @@ int main(void)
 		//control_leds(n);
 	OLED_ShowString(1,1,"DST ");
 	OLED_ShowString(2,1,"TMP ");
-	OLED_ShowNum(2,5,temperature,3);
+	OLED_ShowString(3,1,"SPD ");
+	OLED_ShowNum(2,5,temperature,2);
+	OLED_ShowNum(3,5,velocity,3);
 	high_time_ms=1;
 	low_time_ms=1; // ±÷”“™≈‰÷√Œ™72MHz
 	CalculateCounts();
