@@ -1,2 +1,2 @@
 # superSonicDistancing
- 1
+ 使用STM32F103C8T6单片机作为主控的超声波测距工具
