@@ -80,6 +80,7 @@ uint32_t HighCounts = 0;
 uint32_t LowCounts  = 0;
 uint8_t  IsHigh     = 0;//定时器中断标志位
 uint32_t Counter 		= 0;
+uint32_t counter1   = 0;
 //蜂鸣器输出配置
 // 设定高电平和低电平持续时间（单位：毫秒）
 uint32_t high_time_ms = 500; // 高电平持续时间，单位为毫秒
@@ -244,14 +245,15 @@ void Start_Timer_Measurement(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)//没写完，IO外部中断用于定时
 	//1107更新：可以读取寄存器值，需要进一步修改参数
 {
-	flag=1;
+	flag = 1;
 	EXTI->RTSR;
-	//HAL_TIM_Base_Stop(&htim3);
+	HAL_TIM_Base_Stop(&htim3);
 	timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
-	timeInterval = timeInterval/1000;
-	timeInterval = timeInterval/100;
-	//OLED_ShowNum(1,5,timeInterval,5);
-	HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
+	__HAL_TIM_SET_COUNTER(&htim3,0);
+	timeInterval = timeInterval/1000.0f;
+	//timeInterval = timeInterval/100;
+	//OLED_ShowNum(4,5,timeInterval,5);
+	//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//定时器2/4溢出中断处理,未测试
 																														//1107测试结果：正常
@@ -381,7 +383,7 @@ int main(void)
 	//Buzzer_SetFrequency(40000);
 	HAL_ADC_Start(&hadc1);
   uint32_t adcValue = HAL_ADC_GetValue(&hadc1);
-	float temperature = ((1.43 - ((float)adcValue * 3.3 / 4096)) / 0.0043) +24-320;
+	float temperature = ((float)adcValue * 3.3 / 4096-1.43)*4.3f + 25;
             // 1.43V is the typical voltage at 25°C
             // 0.0043 V/°C is the slope
 	//Buzzer_Beep(150);
@@ -408,24 +410,36 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	i=0;
+	velocity = velocity / 10.0f;
+	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+	uint16_t j = 0;
  while (1)
   {
-		
-		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+		j++;
+		OLED_ShowNum(4,1,j,2);
+		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
 		flag = 0;
 		beep(6);//发信号
-		OLED_ShowNum(4,1,i,2);
-		
+		//OLED_ShowNum(4,1,i,2);
+		//HAL_Delay(1);
+		i=0;
 		HAL_TIM_Base_Start(&htim3);
+		
+		while(i<=100)
+		{
+			i++;
+		}
+		i = 0;
+		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 		if(HAL_TIM_Base_GetState(&htim3) != HAL_TIM_STATE_BUSY)
 		{
 			OLED_Clear();
 			OLED_ShowString(1,1,"ERROR!");
 			Error_Handler();
 		}
-		//HAL_Delay(1);
-		while(flag!=1&&i<100)
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
+		while(flag !=1 &&i<100)
 		{
 			i++;
 		}
@@ -443,8 +457,10 @@ int main(void)
 		*/
 		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
 		//HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
-		dst=velocity*timeInterval/2;
+		
+		dst=velocity*timeInterval / 2.0f;
 		OLED_ShowNum(1,5,dst,4);
+		high_time_ms=10;
 		if(dst<=40){n=10;}
 		else if(40<dst&&dst<=45){n=9;}
 		else if(45<dst&&dst<=50){n=8;}
@@ -454,12 +470,15 @@ int main(void)
 		else if(70<dst&&dst<=80){n=4;}
 		else if(80<dst&&dst<=90){n=3;}
 		else if(90<dst&&dst<=100){n=2;}
-		else{n=1;}
-		high_time_ms=1000/n-10;
-		low_time_ms=10; //时钟要配置为72MHz
+		else{n=1; high_time_ms = 0;}
+		low_time_ms=1000/n-10; //时钟要配置为72MHz
+		if(n == 10) {low_time_ms = 0;}
 		CalculateCounts();
-		HAL_Delay(350);
-		
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+		HAL_Delay(125);
+		//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+		adcValue = HAL_ADC_GetValue(&hadc1);
+		OLED_ShowNum(4,5,adcValue,5);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
