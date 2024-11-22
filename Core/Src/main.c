@@ -383,7 +383,8 @@ int main(void)
 	//Buzzer_SetFrequency(40000);
 	HAL_ADC_Start(&hadc1);
   uint32_t adcValue = HAL_ADC_GetValue(&hadc1);
-	float temperature = ((float)adcValue * 3.3 / 4096-1.43)*4.3f + 25;
+	float temperature = (1.43-(float)adcValue * 3.3 / 4096)/0.0043f + 25;
+	temperature = temperature * 100;
             // 1.43V is the typical voltage at 25°„C
             // 0.0043 V/°„C is the slope
 	//Buzzer_Beep(150);
