@@ -383,8 +383,8 @@ int main(void)
 	//Buzzer_SetFrequency(40000);
 	HAL_ADC_Start(&hadc1);
   uint32_t adcValue = HAL_ADC_GetValue(&hadc1);
-	float temperature = (1.43-(float)adcValue * 3.3 / 4096)/0.0043f + 25;
-	temperature = temperature * 100;
+	float temperature = (1.43-(float)adcValue * 3.3 / 4096)/0.0043f;
+	//temperature = temperature * 100;
             // 1.43V is the typical voltage at 25°„C
             // 0.0043 V/°„C is the slope
 	//Buzzer_Beep(150);
@@ -395,7 +395,7 @@ int main(void)
 	OLED_ShowString(1,1,"DST ");
 	OLED_ShowString(2,1,"TMP ");
 	OLED_ShowString(3,1,"SPD ");
-	OLED_ShowNum(2,5,temperature,2);
+	OLED_ShowNum(2,5,temperature,4);
 	OLED_ShowNum(3,5,velocity,3);
 	high_time_ms=1;
 	low_time_ms=1; // ±÷”“™≈‰÷√Œ™72MHz
