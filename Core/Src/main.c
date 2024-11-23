@@ -27,6 +27,7 @@
 #include "OLED.h"
 #include "buzzer.h"
 #include "pwm.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,14 +91,16 @@ volatile uint32_t elapsed_time = 0; // 用于存储经过的时间
 float timeInterval = 0;
 uint16_t velocity = 340;
 static float dst = 0;
+static float dst0 = 0;
 //超时计数器
-uint8_t i = 0;
+uint32_t i = 0;
 uint8_t flag=0;
 uint8_t flag_led = 0;
 uint8_t n = 0;
 /* 脉冲计数变量 */
 volatile uint32_t pulse_count = 0;    // 已经输出的脉冲计数
 volatile uint32_t pulse_target = 0;   // 需要输出的脉冲总数
+uint16_t temp;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -198,7 +201,7 @@ void control_leds(uint8_t n) {
         light_up_leds(n);     // 点亮指定数量的LED
     } else if (n == 10) {
         // 点亮所有LED并以4Hz频率闪烁
-        blink_all_leds(4);
+        //blink_all_leds(4);
     }
 }
 
@@ -246,13 +249,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)//没写完，IO外部中断用于定时
 	//1107更新：可以读取寄存器值，需要进一步修改参数
 {
 	flag = 1;
-	EXTI->RTSR;
+	EXTI->FTSR;
+	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 	HAL_TIM_Base_Stop(&htim3);
 	timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
 	__HAL_TIM_SET_COUNTER(&htim3,0);
 	timeInterval = timeInterval/1000.0f;
 	//timeInterval = timeInterval/100;
-	//OLED_ShowNum(4,5,timeInterval,5);
+	counter1++;
+	OLED_ShowNum(4,5,counter1,3);
 	//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//定时器2/4溢出中断处理,未测试
@@ -340,6 +345,32 @@ void beep(uint8_t peaks)
 //		HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
 //		HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
 }
+void float_to_string_simple(float num, char *str, int precision) 
+{
+    if (num < 0) { // 处理负数
+        *str++ = '-';
+        num = -num;
+    }
+
+    int int_part = (int)num; // 整数部分
+    float frac_part = num - int_part; // 小数部分
+
+    // 将整数部分转换为字符串
+    sprintf(str, "%d", int_part);
+    while (*str != '\0') str++; // 移动到字符串末尾
+
+    // 添加小数点
+    *str++ = '.';
+
+    // 处理小数部分
+    for (int i = 0; i < precision; i++) {
+        frac_part *= 10;
+        int digit = (int)frac_part;
+        *str++ = '0' + digit;
+        frac_part -= digit;
+    }
+    *str = '\0'; // 结束符
+}
 /* USER CODE END 0 */
 
 /**
@@ -377,25 +408,28 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+	//light_up_leds(10);
+	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 	n = 0;
 	OLED_Init();
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	//Buzzer_SetFrequency(40000);
 	HAL_ADC_Start(&hadc1);
   uint32_t adcValue = HAL_ADC_GetValue(&hadc1);
-	float temperature = (1.43-(float)adcValue * 3.3 / 4096)/0.0043f + 25;
-	temperature = temperature * 100;
+	float temperature = (1.43-(float)adcValue * 3.3 / 4096)/0.0043f +8;
             // 1.43V is the typical voltage at 25°C
             // 0.0043 V/°C is the slope
 	//Buzzer_Beep(150);
 	//Buzzer_Off();
+	//float_to_string_simple(temperature,temp,2);
 	OLED_Clear();
   //uint8_t n = 0;
 		//control_leds(n);
 	OLED_ShowString(1,1,"DST ");
 	OLED_ShowString(2,1,"TMP ");
 	OLED_ShowString(3,1,"SPD ");
-	OLED_ShowNum(2,5,temperature,2);
+	OLED_ShowFloat(2,5,temperature,2);
+	//OLED_ShowString(2,5,temp);
 	OLED_ShowNum(3,5,velocity,3);
 	high_time_ms=1;
 	low_time_ms=1; //时钟要配置为72MHz
@@ -412,38 +446,48 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	i=0;
 	velocity = velocity / 10.0f;
-	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
-	uint16_t j = 0;
+	uint16_t j = 0;//暂时存储发波数
+	counter1 = 0;
+	temp=0;
+	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
+	EXTI->FTSR |= 0x00000010;
  while (1)
   {
+		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
+		//if(dst0-dst>=5){j++;}
+		//else if(dst-dst0>=5){j--;}
+		//else{}
 		j++;
+		dst0=dst;
 		OLED_ShowNum(4,1,j,2);
 		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
-		flag = 0;
+		flag = 0;												//清中断标志位
 		beep(6);//发信号
 		//OLED_ShowNum(4,1,i,2);
 		//HAL_Delay(1);
 		i=0;
 		HAL_TIM_Base_Start(&htim3);
-		
-		while(i<=100)
+		__HAL_TIM_SET_COUNTER(&htim3,0);
+		while(i<=60330)
 		{
-			i++;
+			i++;//等待余震
+			temp++;
 		}
 		i = 0;
-		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 		if(HAL_TIM_Base_GetState(&htim3) != HAL_TIM_STATE_BUSY)
 		{
 			OLED_Clear();
 			OLED_ShowString(1,1,"ERROR!");
 			Error_Handler();
 		}
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
-		while(flag !=1 &&i<100)
+		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+		while(flag !=1 && i<7200000)
 		{
 			i++;
 		}
+		i=0;
 		//HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
     //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
 		//下一步向老师询问为什么出现这样的问题
@@ -460,8 +504,9 @@ int main(void)
 		//HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
 		
 		dst=velocity*timeInterval / 2.0f;
-		OLED_ShowNum(1,5,dst,4);
+		//OLED_Clear();
 		high_time_ms=10;
+		dst0=dst;
 		if(dst<=40){n=10;}
 		else if(40<dst&&dst<=45){n=9;}
 		else if(45<dst&&dst<=50){n=8;}
@@ -472,14 +517,32 @@ int main(void)
 		else if(80<dst&&dst<=90){n=3;}
 		else if(90<dst&&dst<=100){n=2;}
 		else{n=1; high_time_ms = 0;}
+		if (flag != 1) 
+			{
+				OLED_ShowString(1,1,"                ");
+				OLED_ShowString(1,4,"No Signal!");
+			}
+		else 
+			{
+				OLED_ShowString(1,1,"                ");
+				OLED_ShowString(1,1,"DST ");
+				//OLED_ShowString(2,1,"TMP ");
+				//OLED_ShowString(3,1,"SPD ");
+				OLED_ShowFloat(2,5,temperature,2);
+				//OLED_ShowString(2,5,temp);
+				OLED_ShowNum(3,5,velocity*10,3);
+				OLED_ShowFloat(1,5,dst,4);
+			}
+		control_leds(n);
 		low_time_ms=1000/n-10; //时钟要配置为72MHz
 		if(n == 10) {low_time_ms = 0;}
 		CalculateCounts();
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
-		HAL_Delay(125);
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
+		
 		//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
 		adcValue = HAL_ADC_GetValue(&hadc1);
-		OLED_ShowNum(4,5,adcValue,5);
+		//OLED_ShowNum(4,5,adcValue,5);
+		HAL_Delay(250);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

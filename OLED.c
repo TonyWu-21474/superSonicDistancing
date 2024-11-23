@@ -1,7 +1,7 @@
 #include "stm32f1xx_hal.h"
 #include "OLED_Font.h"
 #include "gpio.h"
-
+#include "stdio.h"
 /* 引脚配置 */
 #define OLED_SCL_GPIO_PORT   GPIOB
 #define OLED_SCL_PIN         GPIO_PIN_8
@@ -144,6 +144,8 @@ void OLED_ShowChar(uint8_t Line, uint8_t Column, char Char)
         OLED_WriteData(OLED_F8x16[c][ i + 8]);  // 显示下半部分
     }
 }
+/* OLED显示浮点数 */
+
 
 /* OLED 显示字符串 */
 void OLED_ShowString(uint8_t Line, uint8_t Column, char *String)
@@ -227,7 +229,17 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
         OLED_ShowChar(Line, Column + i, Number / OLED_Pow(2, Length - i - 1) % 2 + '0');
     }
 }
-
+void OLED_ShowFloat(uint8_t Line , uint8_t Column, float Number, uint8_t intLength)
+{
+		uint32_t PowNum , IntNum , FraNum;
+		IntNum = Number;
+		Number -= IntNum;
+		PowNum = 100;
+		FraNum = PowNum * Number;
+		OLED_ShowNum(Line,Column,IntNum,intLength);
+		OLED_ShowChar(Line,Column+intLength,'.');
+		OLED_ShowNum(Line,Column+intLength+1,FraNum,2);
+}
 /* OLED 初始化 */
 void OLED_Init(void)
 {
