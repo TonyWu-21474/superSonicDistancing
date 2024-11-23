@@ -399,8 +399,9 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 	//light_up_leds(10);
-	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+	//HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 	n = 0;
+	
 	OLED_Init();
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	//Buzzer_SetFrequency(40000);
@@ -440,9 +441,12 @@ int main(void)
 	counter1 = 0;
 	temp=0;
 	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
-	EXTI->FTSR |= 0x00000010;
+	EXTI->FTSR |= 1<<4;
+	temp = EXTI->FTSR; //TODO :显示标志位值
+	OLED_ShowHexNum(4,5,temp,8);
  while (1)
   {
+<<<<<<< Updated upstream
 		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//if(dst0-dst>=5){j++;}
 		//else if(dst-dst0>=5){j--;}
@@ -473,20 +477,53 @@ int main(void)
 			Error_Handler();
 		}
 		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+=======
+//		//HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
+//		//if(dst0-dst>=5){j++;}
+//		//else if(dst-dst0>=5){j--;}
+//		//else{}
+//		j++;
+//		dst0=dst;
+//		OLED_ShowNum(4,1,j,2);
+//		//HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
+//		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
+//		flag = 0;												//清中断标志位
+//		__HAL_TIM_SET_COUNTER(&htim3,0);
+//		beep(6);//发信号
+//		//OLED_ShowNum(4,1,i,2);
+//		//HAL_Delay(1);
+//		i=0;
+//		HAL_TIM_Base_Start(&htim3);
+//		__HAL_TIM_SET_COUNTER(&htim3,0);
+//		while(i<=60330)
+//		{
+//			i++;//等待余震
+//			temp++;
+//		}
+//		i = 0;
+//		if(HAL_TIM_Base_GetState(&htim3) != HAL_TIM_STATE_BUSY)
+//		{
+//			OLED_Clear();
+//			OLED_ShowString(1,1,"ERROR!");
+//			Error_Handler();
+//		}
+		flag = 0;
+>>>>>>> Stashed changes
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
 		while(flag !=1 && i<7200000)
 		{
 			i++;//等待10ms超时
 		}
 		i=0;
-		//HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
-    //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
-		//下一步向老师询问为什么出现这样的问题
-		//已解决（11/7）
+//		//HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
+//    //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
+//		//下一步向老师询问为什么出现这样的问题
+//		//已解决（11/7）
 		if(flag == 1)
 		{
 			flag = 0;		//中断触发后清标志位
-			EXTI->FTSR; //TODO :显示标志位值
+			//temp = EXTI->FTSR; //TODO :显示标志位值
+			//OLED_ShowHexNum(4,5,temp,4);
 			timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
 			__HAL_TIM_SET_COUNTER(&htim3,0);
 			timeInterval = timeInterval/1000.0f;
