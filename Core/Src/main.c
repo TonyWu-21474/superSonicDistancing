@@ -248,17 +248,7 @@ void Start_Timer_Measurement(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)//没写完，IO外部中断用于定时
 	//1107更新：可以读取寄存器值，需要进一步修改参数
 {
-	flag = 1;
-	EXTI->FTSR;
-	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
-	HAL_TIM_Base_Stop(&htim3);
-	timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
-	__HAL_TIM_SET_COUNTER(&htim3,0);
-	timeInterval = timeInterval/1000.0f;
-	//timeInterval = timeInterval/100;
-	counter1++;
-	OLED_ShowNum(4,5,counter1,3);
-	//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
+	flag = 1;//只更新标志位
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//定时器2/4溢出中断处理,未测试
 																														//1107测试结果：正常
@@ -463,6 +453,7 @@ int main(void)
 		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
 		flag = 0;												//清中断标志位
+		__HAL_TIM_SET_COUNTER(&htim3,0);
 		beep(6);//发信号
 		//OLED_ShowNum(4,1,i,2);
 		//HAL_Delay(1);
@@ -485,58 +476,57 @@ int main(void)
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
 		while(flag !=1 && i<7200000)
 		{
-			i++;
+			i++;//等待10ms超时
 		}
 		i=0;
 		//HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);
     //现在（11/4）的问题是在初始化完成并且启动定时器后，HAL_TIM_Base_GetState仍然返回0
 		//下一步向老师询问为什么出现这样的问题
 		//已解决（11/7）
-		/*while(HAL_TIM_Base_GetState(&htim3)==HAL_OK&&__HAL_TIM_GET_FLAG(&htim3,TIM_FLAG_CC1)!= HAL_OK&&i<=10)
+		if(flag == 1)
 		{
-			HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
-			i++;
-			OLED_ShowNum(4,1,i,1);
-			HAL_Delay(1);
-		}
-		*/
-		//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
-		//HAL_GPIO_WritePin(GPIOA,GPIO_PIN_13,GPIO_PIN_SET);
-		
-		dst=velocity*timeInterval / 2.0f;
-		//OLED_Clear();
-		high_time_ms=10;
-		dst0=dst;
-		if(dst<=40){n=10;}
-		else if(40<dst&&dst<=45){n=9;}
-		else if(45<dst&&dst<=50){n=8;}
-		else if(50<dst&&dst<=55){n=7;}
-		else if(55<dst&&dst<=60){n=6;}
-		else if(60<dst&&dst<=70){n=5;}
-		else if(70<dst&&dst<=80){n=4;}
-		else if(80<dst&&dst<=90){n=3;}
-		else if(90<dst&&dst<=100){n=2;}
-		else{n=1; high_time_ms = 0;}
-		if (flag != 1) 
-			{
-				OLED_ShowString(1,1,"                ");
-				OLED_ShowString(1,4,"No Signal!");
-			}
-		else 
-			{
-				OLED_ShowString(1,1,"                ");
+			flag = 0;		//中断触发后清标志位
+			EXTI->FTSR; //TODO :显示标志位值
+			timeInterval = __HAL_TIM_GET_COUNTER(&htim3);
+			__HAL_TIM_SET_COUNTER(&htim3,0);
+			timeInterval = timeInterval/1000.0f;
+			//timeInterval = timeInterval/100;
+			counter1++;
+			OLED_ShowNum(4,5,counter1,3);
+			//HAL_GPIO_WritePin(GPIOA,7,GPIO_PIN_RESET);
+			dst=velocity*timeInterval / 2.0f;
+			//OLED_Clear();
+			high_time_ms=10;
+			dst0=dst;
+			if(dst<=40){n=10;}
+				else if(40<dst&&dst<=45){n=9;}
+				else if(45<dst&&dst<=50){n=8;}
+				else if(50<dst&&dst<=55){n=7;}
+				else if(55<dst&&dst<=60){n=6;}
+				else if(60<dst&&dst<=70){n=5;}
+				else if(70<dst&&dst<=80){n=4;}
+				else if(80<dst&&dst<=90){n=3;}
+				else if(90<dst&&dst<=100){n=2;}
+				else{n=1; high_time_ms = 0;}
+				OLED_ShowString(1,1,"                ");//清行
 				OLED_ShowString(1,1,"DST ");
 				//OLED_ShowString(2,1,"TMP ");
 				//OLED_ShowString(3,1,"SPD ");
 				OLED_ShowFloat(2,5,temperature,2);
 				//OLED_ShowString(2,5,temp);
-				OLED_ShowNum(3,5,velocity*10,3);
+				OLED_ShowNum(3,5,velocity*1000,3);
 				OLED_ShowFloat(1,5,dst,4);
+				control_leds(n);
+				low_time_ms=1000/n-10; //时钟要配置为72MHz
+				if(n == 10) {low_time_ms = 0;}
+				CalculateCounts();
 			}
-		control_leds(n);
-		low_time_ms=1000/n-10; //时钟要配置为72MHz
-		if(n == 10) {low_time_ms = 0;}
-		CalculateCounts();
+		else if (flag != 1) 
+		{
+				OLED_ShowString(1,1,"                ");
+				OLED_ShowString(1,4,"No Signal!");
+		}
+		
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
 		
 		//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
