@@ -453,7 +453,7 @@ int main(void)
 		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
 		flag = 0;												//清中断标志位
-		__HAL_TIM_SET_COUNTER(&htim3,0);
+		__HAL_TIM_SET_COUNTER(&htim3,0);//清计数器
 		beep(6);//发信号
 		//OLED_ShowNum(4,1,i,2);
 		//HAL_Delay(1);
