@@ -446,15 +446,12 @@ int main(void)
 	OLED_ShowHexNum(4,5,temp,8);
  while (1)
   {
-<<<<<<< Updated upstream
-		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//if(dst0-dst>=5){j++;}
 		//else if(dst-dst0>=5){j--;}
 		//else{}
 		j++;
 		dst0=dst;
 		OLED_ShowNum(4,1,j,2);
-		HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 		//Buzzer_Beep(0);//1毫秒40个波形，考虑弃用该部分
 		flag = 0;												//清中断标志位
 		__HAL_TIM_SET_COUNTER(&htim3,0);//清计数器
@@ -476,8 +473,7 @@ int main(void)
 			OLED_ShowString(1,1,"ERROR!");
 			Error_Handler();
 		}
-		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
-=======
+//=======
 //		//HAL_NVIC_DisableIRQ(EXTI4_IRQn);//先关闭中断，防止错误触发
 //		//if(dst0-dst>=5){j++;}
 //		//else if(dst-dst0>=5){j--;}
@@ -507,8 +503,8 @@ int main(void)
 //			OLED_ShowString(1,1,"ERROR!");
 //			Error_Handler();
 //		}
-		flag = 0;
->>>>>>> Stashed changes
+		//flag = 0;
+//>>>>>>> Stashed changes
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
 		while(flag !=1 && i<7200000)
 		{
@@ -557,11 +553,15 @@ int main(void)
 				low_time_ms=1000/n-10; //时钟要配置为72MHz
 				if(n == 10) {low_time_ms = 0;}
 				CalculateCounts();
+				HAL_TIM_Base_Stop(&htim3);
+				__HAL_TIM_SET_COUNTER(&htim3,0);
 			}
 		else if (flag != 1) 
 		{
 				OLED_ShowString(1,1,"                ");
 				OLED_ShowString(1,4,"No Signal!");
+				HAL_TIM_Base_Stop(&htim3);
+				__HAL_TIM_SET_COUNTER(&htim3,0);
 		}
 		
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
